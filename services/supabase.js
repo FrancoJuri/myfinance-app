@@ -1,17 +1,5 @@
 import { supabase } from '../lib/supabase.js';
 
-export const signInWithGoogle = async () => {
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-    });
-    
-    if (error) throw error;
-    return { data, error: null };
-  } catch (error) {
-    return { data: null, error };
-  }
-};
 
 export const signOut = async () => {
   try {
