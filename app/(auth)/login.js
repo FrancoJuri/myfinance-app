@@ -1,15 +1,40 @@
 import { router } from 'expo-router';
-import { Keyboard, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import Logo from '../../components/Logo';
+import { supabase } from '../../lib/supabase';
 
 export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function signInWithEmail() {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        router.replace('/(app)');
+      }
+    } catch (error) {
+      Alert.alert('Error', `Ocurrio un error al iniciar sesion: ${error}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       className="flex-1"
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        
         <View className="flex-1">
           {/* Header Content */}
           <View className="px-6 pt-20 pb-28">
@@ -34,6 +59,9 @@ export default function Login() {
                   placeholder="tu@email.com"
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
+                  editable={!loading}
                 />
               </View>
 
@@ -45,14 +73,19 @@ export default function Login() {
                   className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-gray-50/50 text-gray-900 mt-1"
                   placeholder="••••••••"
                   secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!loading}
                 />
               </View>
 
               <TouchableOpacity
-                className="w-full bg-gray-900 py-3.5 rounded-2xl active:opacity-80 mt-6"
+                className={`w-full bg-gray-900 py-3.5 rounded-2xl ${loading ? 'opacity-50' : 'active:opacity-80'} mt-6`}
+                onPress={signInWithEmail}
+                disabled={loading}
               >
                 <Text className="text-white text-center font-semibold">
-                  Iniciar sesión
+                  {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
                 </Text>
               </TouchableOpacity>
 
@@ -63,6 +96,7 @@ export default function Login() {
                 <TouchableOpacity
                   onPress={() => router.push('/register')}
                   className="active:opacity-60"
+                  disabled={loading}
                 >
                   <Text className="text-gray-900 font-semibold">
                     Regístrate
@@ -72,9 +106,7 @@ export default function Login() {
             </View>
           </View>
         </View>
-
       </TouchableWithoutFeedback>
-  
     </KeyboardAvoidingView>
   );
 } 
