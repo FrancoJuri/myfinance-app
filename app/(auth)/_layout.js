@@ -1,8 +1,21 @@
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
+import { useSelector } from 'react-redux';
 
 export default function AuthLayout() {
+
+  const { isAuthenticated, isLoading } = useSelector((state) => state.user);
+
+  if(isLoading) {
+    return <View style={{ flex: 1, backgroundColor: '#fff' }} />;
+  }
+
+  if(isAuthenticated) {
+    return <Redirect href="/(app)" />;
+  }
+  
+
   return (
     <View className="flex-1 bg-gray-950">
       <StatusBar style="light" />
