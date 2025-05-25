@@ -18,7 +18,7 @@ export default function Dashboard() {
 
       {/* Header con más espacio y saludo más notorio */}
       <View className={`px-5 pt-6 pb-2 ${insets.top > 0 ? "mt-2" : "mt-6"} flex-row justify-between items-center`}>
-        <Text className="text-2xl font-semibold">Buenos días</Text>
+        <Text className="text-2xl font-semibold">Buenos días!</Text>
 
         {/* Icono de perfil */}
         <TouchableOpacity

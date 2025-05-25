@@ -77,4 +77,31 @@ export const deleteCategory = async ({ categoryId }) => {
   }
 }
 
+export const createTransaction = async ({ userId, amount, categoryId, note }) => {
+  try {
+    // Convertir la coma a punto decimal y asegurar que sea un número con 2 decimales
+    const cleanAmount = amount.toString().replace(',', '.');
+    const numericAmount = parseFloat(parseFloat(cleanAmount).toFixed(2));
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert([
+        {
+          user_id: userId,
+          amount: numericAmount,
+          category_id: categoryId,
+          note: note?.trim() || null,
+          type: 'expense'
+        }
+      ])
+      .select()
+
+    if (error) throw error
+    return { data, error: null }
+  } catch (error) {
+    console.error('Error creating transaction:', error)
+    return { data: null, error }
+  }
+}
+
 export default supabase; 

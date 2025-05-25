@@ -1,19 +1,21 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useEffect, useState } from "react"
-import { ActivityIndicator, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, Alert, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { useSelector } from "react-redux"
-import { fetchCategories } from "../../services/supabase"
+import { useDispatch, useSelector } from "react-redux"
+import { addTransaction } from "../../redux/slices/transactionsSlice"
+import { createTransaction, fetchCategories } from "../../services/supabase"
 
 export default function AddExpense() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const dispatch = useDispatch()
   const [amount, setAmount] = useState("")
-  const [type, setType] = useState("expense") // "expense" o "income"
   const [note, setNote] = useState("")
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
 
   const user = useSelector((state) => state.user.user)
@@ -24,6 +26,46 @@ export default function AddExpense() {
     }
   }, [user?.id])
 
+  const handleSave = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      Alert.alert("Error", "Por favor ingresa un monto válido")
+      return
+    }
+
+    if (!selectedCategory) {
+      Alert.alert("Error", "Por favor selecciona una categoría")
+      return
+    }
+
+    setSaving(true)
+    try {
+      const { data, error } = await createTransaction({
+        userId: user.id,
+        amount: amount,
+        categoryId: selectedCategory.id,
+        note: note
+      })
+
+      if (error) throw error
+
+      // Actualizar el estado global con la nueva transacción
+      if (data && data[0]) {
+        dispatch(addTransaction(data[0]))
+      }
+      
+      Alert.alert("¡Éxito!", "Gasto registrado correctamente", [
+        { text: "OK", onPress: () => router.back() }
+      ])
+    } catch (error) {
+      console.error('Error saving transaction:', error)
+      Alert.alert("Error", "No se pudo guardar el gasto")
+    } finally {
+      setSaving(false);
+      setAmount("")
+      setNote("")
+      setSelectedCategory(null)
+    }
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -35,22 +77,6 @@ export default function AddExpense() {
       </View>
 
       <ScrollView className="flex-1 px-5 pt-6">
-        {/* Selector de tipo */}
-        <View className="flex-row bg-gray-100 rounded-xl p-1 mb-6">
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg items-center ${type === "expense" ? "bg-black" : ""}`}
-            onPress={() => setType("expense")}
-          >
-            <Text className={`font-medium ${type === "expense" ? "text-white" : "text-gray-500"}`}>Gasto</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            className={`flex-1 py-3 rounded-lg items-center ${type === "income" ? "bg-black" : ""}`}
-            onPress={() => setType("income")}
-          >
-            <Text className={`font-medium ${type === "income" ? "text-white" : "text-gray-500"}`}>Ingreso</Text>
-          </TouchableOpacity>
-        </View>
-
         {/* Monto */}
         <View className="mb-6">
           <Text className="text-base font-medium mb-2">Monto</Text>
@@ -120,8 +146,16 @@ export default function AddExpense() {
         </View>
 
         {/* Botón guardar */}
-        <TouchableOpacity className="bg-black py-4 rounded-xl items-center mb-8">
-          <Text className="text-white font-semibold text-base">Guardar</Text>
+        <TouchableOpacity 
+          className={`bg-black py-4 rounded-xl items-center mb-8 ${saving ? 'opacity-50' : ''}`}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text className="text-white font-semibold text-base">Guardar</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
