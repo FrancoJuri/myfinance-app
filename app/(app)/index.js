@@ -1,16 +1,26 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { SafeAreaView, StatusBar, Text, TouchableOpacity, View } from "react-native"
+import { ActivityIndicator, SafeAreaView, StatusBar, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { calculateDailyTotal, calculateMonthlyTotal, calculateWeeklyTotal } from "../../helpers/calculateTotals"
+import { useTransactions } from "../../hooks/useTransactions"
 
 export default function Dashboard() {
-  // Aquí puedes traer los valores reales de tus gastos
-  const daily = 624
-  const weekly = 1910
-  const monthly = 12012
-
   const router = useRouter()
   const insets = useSafeAreaInsets()
+  const { movements, loading } = useTransactions()
+
+  // Calcular los totales
+  const daily = calculateDailyTotal(movements)
+  const weekly = calculateWeeklyTotal(movements)
+  const monthly = calculateMonthlyTotal(movements)
+
+  const formatAmount = (amount) => {
+    return amount.toLocaleString('es-ES', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -30,39 +40,45 @@ export default function Dashboard() {
       </View>
 
       {/* Main Content */}
-      <View className="flex-1 px-5 justify-center relative">
-        {/* Gasto Diario */}
-        <View className="py-6">
-          <Text className="text-gray-500 text-sm font-medium mb-2">DÍA</Text>
-          <Text className="text-5xl font-bold">${daily.toLocaleString()}</Text>
+      {loading ? (
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#000" />
         </View>
+      ) : (
+        <View className="flex-1 px-5 justify-center relative">
+          {/* Gasto Diario */}
+          <View className="py-6">
+            <Text className="text-gray-500 text-sm font-medium mb-2">DÍA</Text>
+            <Text className="text-5xl font-bold">${formatAmount(daily)}</Text>
+          </View>
 
-        {/* Línea separadora */}
-        <View className="h-px bg-gray-200 mx-0" />
+          {/* Línea separadora */}
+          <View className="h-px bg-gray-200 mx-0" />
 
-        {/* Gasto Semanal */}
-        <View className="py-6">
-          <Text className="text-gray-500 text-sm font-medium mb-2">SEMANA</Text>
-          <Text className="text-5xl font-bold">${weekly.toLocaleString()}</Text>
+          {/* Gasto Semanal */}
+          <View className="py-6">
+            <Text className="text-gray-500 text-sm font-medium mb-2">SEMANA (últimos 7 días)</Text>
+            <Text className="text-5xl font-bold">${formatAmount(weekly)}</Text>
+          </View>
+
+          {/* Línea separadora */}
+          <View className="h-px bg-gray-200 mx-0" />
+
+          {/* Gasto Mensual */}
+          <View className="py-6">
+            <Text className="text-gray-500 text-sm font-medium mb-2">MES (desde el 1º de este mes)</Text>
+            <Text className="text-5xl font-bold">${formatAmount(monthly)}</Text>
+          </View>
+
+          {/* Floating Action Button (dentro de la pantalla principal) */}
+          <TouchableOpacity
+            onPress={() => router.push("/(app)/addExpense")}
+            className="absolute bottom-8 right-8 bg-black w-12 h-12 rounded-full justify-center items-center shadow-md"
+          >
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
         </View>
-
-        {/* Línea separadora */}
-        <View className="h-px bg-gray-200 mx-0" />
-
-        {/* Gasto Mensual */}
-        <View className="py-6">
-          <Text className="text-gray-500 text-sm font-medium mb-2">MES</Text>
-          <Text className="text-5xl font-bold">${monthly.toLocaleString()}</Text>
-        </View>
-
-        {/* Floating Action Button (dentro de la pantalla principal) */}
-        <TouchableOpacity
-          onPress={() => router.push("/(app)/addExpense")}
-          className="absolute bottom-8 right-8 bg-black w-12 h-12 rounded-full justify-center items-center shadow-md"
-        >
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      )}
     </SafeAreaView>
   )
 }

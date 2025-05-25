@@ -1,48 +1,23 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { ActivityIndicator, SafeAreaView, ScrollView, Text, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { useDispatch, useSelector } from "react-redux"
 import { formatDate } from "../../helpers/formatDate"
-import { setError, setLoading, setTransactions } from "../../redux/slices/transactionsSlice"
-import { fetchTransactions } from "../../services/supabase"
+import { useTransactions } from "../../hooks/useTransactions"
 
 export default function History() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
-  const dispatch = useDispatch()
   const [expandedTransaction, setExpandedTransaction] = useState(null)
-
-  const user = useSelector((state) => state.user.user)
-  const { movements, loading } = useSelector((state) => state.transactions)
-
-  useEffect(() => {
-    const loadTransactions = async () => {
-      if (!user?.id) return;
-      
-      dispatch(setLoading(true));
-      const { data, error } = await fetchTransactions({ userId: user.id });
-      
-      if (error) {
-        dispatch(setError(error.message));
-        dispatch(setLoading(false));
-        return;
-      }
-      
-      dispatch(setTransactions(data));
-      dispatch(setLoading(false));
-    };
-
-    loadTransactions();
-  }, [user?.id, dispatch]);
+  const { movements, loading } = useTransactions()
 
   const formatAmount = (amount) => {
     return amount.toLocaleString('es-ES', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    });
-  };
+    })
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white">
