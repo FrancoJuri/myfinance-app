@@ -104,4 +104,31 @@ export const createTransaction = async ({ userId, amount, categoryId, note }) =>
   }
 }
 
+export const fetchTransactions = async ({ userId }) => {
+  try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(`
+        *,
+        categories:category_id (
+          name,
+          color
+        )
+      `)
+      .eq('user_id', userId)
+      .gte('created_at', thirtyDaysAgo.toISOString())
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    return { data: null, error };
+  }
+}
+
 export default supabase; 

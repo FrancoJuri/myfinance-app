@@ -20,6 +20,25 @@ export default function AddExpense() {
 
   const user = useSelector((state) => state.user.user)
 
+  const handleAmountChange = (text) => {
+    // Primero removemos los puntos existentes para manejar el caso de edición
+    let value = text.replace(/\./g, '')
+    
+    // Si hay una coma decimal, separamos la parte entera de la decimal
+    const parts = value.split(',')
+    if (parts.length > 1) {
+      // Formateamos la parte entera con puntos
+      const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+      // Mantenemos la parte decimal como está
+      value = integerPart + ',' + parts[1]
+    } else {
+      // Si no hay decimales, solo formateamos con puntos
+      value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    }
+    
+    setAmount(value)
+  }
+
   useEffect(() => {
     if (user?.id) {
       fetchCategories({ userId: user.id, setCategories, setLoading })
@@ -27,7 +46,10 @@ export default function AddExpense() {
   }, [user?.id])
 
   const handleSave = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
+    // Limpiar el número antes de validar y enviar
+    const cleanAmount = amount.replace(/\./g, '').replace(',', '.')
+    
+    if (!cleanAmount || parseFloat(cleanAmount) <= 0) {
       Alert.alert("Error", "Por favor ingresa un monto válido")
       return
     }
@@ -41,7 +63,7 @@ export default function AddExpense() {
     try {
       const { data, error } = await createTransaction({
         userId: user.id,
-        amount: amount,
+        amount: parseFloat(cleanAmount),
         categoryId: selectedCategory.id,
         note: note
       })
@@ -50,7 +72,14 @@ export default function AddExpense() {
 
       // Actualizar el estado global con la nueva transacción
       if (data && data[0]) {
-        dispatch(addTransaction(data[0]))
+        const formattedTransaction = {
+          ...data[0],
+          categories: {
+            name: selectedCategory.name,
+            color: selectedCategory.color,
+          }
+        }
+        dispatch(addTransaction(formattedTransaction))
       }
       
       Alert.alert("¡Éxito!", "Gasto registrado correctamente", [
@@ -60,7 +89,7 @@ export default function AddExpense() {
       console.error('Error saving transaction:', error)
       Alert.alert("Error", "No se pudo guardar el gasto")
     } finally {
-      setSaving(false);
+      setSaving(false)
       setAmount("")
       setNote("")
       setSelectedCategory(null)
@@ -92,11 +121,11 @@ export default function AddExpense() {
                 textAlign: 'left',
                 lineHeight: undefined
               }}
-              placeholder="0.00"
+              placeholder="0,00"
               keyboardType="numeric"
               placeholderTextColor="#9CA3AF"
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={handleAmountChange}
             />
           </View>
         </View>

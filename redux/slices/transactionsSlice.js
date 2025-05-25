@@ -18,7 +18,7 @@ const transactionsSlice = createSlice({
       state.error = null;
     },
     addTransaction: (state, action) => {
-      state.movements.push(action.payload);
+      state.movements.unshift(action.payload);
       state.error = null;
     },
     setError: (state, action) => {
