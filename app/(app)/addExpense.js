@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
-import { useState } from "react"
-import { SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
+import { useEffect, useState } from "react"
+import { ActivityIndicator, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { useSelector } from "react-redux"
+import { fetchCategories } from "../../services/supabase"
 
 export default function AddExpense() {
   const insets = useSafeAreaInsets()
@@ -10,16 +12,18 @@ export default function AddExpense() {
   const [amount, setAmount] = useState("")
   const [type, setType] = useState("expense") // "expense" o "income"
   const [note, setNote] = useState("")
-
-  // Categorías de ejemplo
-  const categories = [
-    { id: 1, name: "Comida", color: "#FF3B30" },
-    { id: 2, name: "Transporte", color: "#FF9500" },
-    { id: 3, name: "Ocio", color: "#FFCC00" },
-    { id: 4, name: "Hogar", color: "#34C759" },
-    { id: 5, name: "Salud", color: "#5AC8FA" },
-  ]
+  const [categories, setCategories] = useState([])
+  const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState(null)
+
+  const user = useSelector((state) => state.user.user)
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchCategories({ userId: user.id, setCategories, setLoading })
+    }
+  }, [user?.id])
+
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -27,7 +31,7 @@ export default function AddExpense() {
         <TouchableOpacity onPress={() => router.back()} className="mr-4">
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text className="text-2xl font-semibold">Añadir movimiento</Text>
+        <Text className="text-2xl font-semibold">Añadir Gasto</Text>
       </View>
 
       <ScrollView className="flex-1 px-5 pt-6">
@@ -53,9 +57,18 @@ export default function AddExpense() {
           <View className="flex-row items-center bg-gray-100 rounded-xl px-4">
             <Text className="text-xl mr-2">$</Text>
             <TextInput
-              className="flex-1 py-3 text-xl"
+              className="flex-1 text-xl"
+              style={{
+                height: 48,
+                paddingHorizontal: 16,
+                textAlignVertical: 'center',
+                includeFontPadding: false,
+                textAlign: 'left',
+                lineHeight: undefined
+              }}
               placeholder="0.00"
               keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
               value={amount}
               onChangeText={setAmount}
             />
@@ -71,23 +84,27 @@ export default function AddExpense() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pb-2">
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                className={`mr-3 items-center ${selectedCategory?.id === category.id ? "opacity-100" : "opacity-60"}`}
-                onPress={() => setSelectedCategory(category)}
-              >
-                <View
-                  style={{ backgroundColor: category.color }}
-                  className="w-12 h-12 rounded-full items-center justify-center mb-1"
+          {loading ? (
+            <ActivityIndicator size="large" color="#000" className="py-4" />
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="pb-2">
+              {categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  className={`mr-3 items-center ${selectedCategory?.id === category.id ? "opacity-100" : "opacity-60"}`}
+                  onPress={() => setSelectedCategory(category)}
                 >
-                  {selectedCategory?.id === category.id && <Ionicons name="checkmark" size={20} color="white" />}
-                </View>
-                <Text className="text-xs">{category.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+                  <View
+                    style={{ backgroundColor: category.color }}
+                    className="w-12 h-12 rounded-full items-center justify-center mb-1"
+                  >
+                    {selectedCategory?.id === category.id && <Ionicons name="checkmark" size={20} color="white" />}
+                  </View>
+                  <Text className="text-xs">{category.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         {/* Nota */}
@@ -101,12 +118,6 @@ export default function AddExpense() {
             multiline
           />
         </View>
-
-        {/* Fecha */}
-        <TouchableOpacity className="flex-row items-center justify-between bg-gray-100 py-3 px-4 rounded-xl mb-8">
-          <Text className="text-base">Hoy</Text>
-          <Ionicons name="calendar-outline" size={20} color="#555" />
-        </TouchableOpacity>
 
         {/* Botón guardar */}
         <TouchableOpacity className="bg-black py-4 rounded-xl items-center mb-8">
