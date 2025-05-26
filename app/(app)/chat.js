@@ -56,6 +56,8 @@ export default function Chat() {
         body: { user_id: user.id }
       })
 
+      console.log('functionData', functionData);
+
       if (functionError) throw functionError;
 
       // Obtener el primer día del mes anterior
@@ -109,7 +111,7 @@ export default function Chat() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-5">
+      <ScrollView className="flex-1 px-5 mt-10">
         {/* Sección de Análisis */}
         <View className="items-center my-6">
           <Text className="text-lg font-semibold mb-2">Análisis Mensual con IA</Text>

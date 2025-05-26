@@ -3,6 +3,16 @@ import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 import OpenAI from "npm:openai@4.24.1";
 import { corsHeaders } from '../_shared/cors.ts';
 
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+ // Initialize OpenAI
+ const openAI = new OpenAI({
+  apiKey: Deno.env.get('OPENAI_API_KEY'),
+})
+
 
 Deno.serve(async (req) => {
   // This is needed if you're planning to invoke your function from a browser.
@@ -12,21 +22,7 @@ Deno.serve(async (req) => {
 
   try {
 
-    const supabaseClient = createClient(
-      // Supabase API URL - env var exported by default.
-      Deno.env.get('SUPABASE_URL') ?? '',
-      // Supabase API ANON KEY - env var exported by default.
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      // Create client with Auth context of the user that called the function.
-      // This way your row-level-security (RLS) policies are applied.
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
-
-    const { user_id } = await req.json()
+    const { user_id } = await req.json();
 
     // Get current month's first day
     const currentDate = new Date()
@@ -41,23 +37,23 @@ Deno.serve(async (req) => {
     console.log('last day previous month', lastDayPreviousMonth);
 
     // Get current month transactions
-    const { data: currentMonthData, error: currentError } = await supabaseClient
+    const { data: currentMonthData, error: currentError } = await supabase
       .from('transactions')
-      .select('amount, type, category, date, note')
+      .select('amount, type, category_id, created_at, note')
       .eq('user_id', user_id)
-      .gte('date', firstDayCurrentMonth.toISOString())
-      .order('date', { ascending: true })
+      .gte('created_at', firstDayCurrentMonth.toISOString())
+      .order('created_at', { ascending: true })
 
     if (currentError) throw new Error('Error fetching current month data: ' + currentError.message)
 
     // Get previous month transactions
-    const { data: previousMonthData, error: previousError } = await supabaseClient
+    const { data: previousMonthData, error: previousError } = await supabase
       .from('transactions')
-      .select('amount, type, category, date, note')
+      .select('amount, type, category_id, created_at, note')
       .eq('user_id', user_id)
-      .gte('date', firstDayPreviousMonth.toISOString())
-      .lt('date', lastDayPreviousMonth.toISOString())
-      .order('date', { ascending: true })
+      .gte('created_at', firstDayPreviousMonth.toISOString())
+      .lt('created_at', lastDayPreviousMonth.toISOString())
+      .order('created_at', { ascending: true })
 
     if (previousError) throw new Error('Error fetching previous month data: ' + previousError.message)
 
@@ -70,7 +66,7 @@ Deno.serve(async (req) => {
 
     const formatTransactions = (data) => {
       return data.map(t =>
-        `[$${t.amount}] ${t.type} - ${t.category} (${t.date.split("T")[0]})${t.note ? `: ${t.note}` : ''}`
+        `[$${t.amount}] ${t.type} - ${t.category_id} (${t.created_at.split("T")[0]})${t.note ? `: ${t.note}` : ''}`
       ).join("\n")
     }
 
@@ -105,14 +101,11 @@ Deno.serve(async (req) => {
 
     Responde en español, de manera clara y concisa, usando un tono profesional pero amigable.`;
 
-    // Initialize OpenAI
-    const openAI = new OpenAI({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    })
+    console.log('prompt', prompt);
 
     // Get OpenAI analysis
     const completion = await openAI.chat.completions.create({
-      model: 'o4-mini',
+      model: 'gpt-4.1',
       messages: [
         {
           role: "system",
@@ -125,6 +118,8 @@ Deno.serve(async (req) => {
       ],
       temperature: 0.7,
     })
+
+    console.log('completion', completion);
 
     // Return the analysis
     return new Response(
