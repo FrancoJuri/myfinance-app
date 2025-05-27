@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { ActivityIndicator, Alert, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useDispatch, useSelector } from "react-redux"
+import { setCategories } from "../../redux/slices/categoriesSlice"
 import { addTransaction } from "../../redux/slices/transactionsSlice"
 import { createTransaction, fetchCategories } from "../../services/supabase"
 
@@ -13,12 +14,12 @@ export default function AddExpense() {
   const dispatch = useDispatch()
   const [amount, setAmount] = useState("")
   const [note, setNote] = useState("")
-  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
 
   const user = useSelector((state) => state.user.user)
+  const categories = useSelector((state) => state.categories.categories)
 
   const handleAmountChange = (text) => {
     // Primero removemos los puntos existentes para manejar el caso de edición
@@ -41,7 +42,14 @@ export default function AddExpense() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchCategories({ userId: user.id, setCategories, setLoading })
+      fetchCategories({ 
+        userId: user.id, 
+        setCategories: (cats) => {
+          dispatch(setCategories(cats))
+          setLoading(false)
+        }, 
+        setLoading 
+      })
     }
   }, [user?.id])
 

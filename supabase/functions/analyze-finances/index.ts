@@ -39,7 +39,14 @@ Deno.serve(async (req) => {
     // Get current month transactions
     const { data: currentMonthData, error: currentError } = await supabase
       .from('transactions')
-      .select('amount, type, category_id, created_at, note')
+      .select(`
+        amount, 
+        type, 
+        category_id,
+        categories(name),
+        created_at, 
+        note
+      `)
       .eq('user_id', user_id)
       .gte('created_at', firstDayCurrentMonth.toISOString())
       .order('created_at', { ascending: true })
@@ -49,7 +56,14 @@ Deno.serve(async (req) => {
     // Get previous month transactions
     const { data: previousMonthData, error: previousError } = await supabase
       .from('transactions')
-      .select('amount, type, category_id, created_at, note')
+      .select(`
+        amount, 
+        type, 
+        category_id,
+        categories(name),
+        created_at, 
+        note
+      `)
       .eq('user_id', user_id)
       .gte('created_at', firstDayPreviousMonth.toISOString())
       .lt('created_at', lastDayPreviousMonth.toISOString())
@@ -66,7 +80,7 @@ Deno.serve(async (req) => {
 
     const formatTransactions = (data) => {
       return data.map(t =>
-        `[$${t.amount}] ${t.type} - ${t.category_id} (${t.created_at.split("T")[0]})${t.note ? `: ${t.note}` : ''}`
+        `[$${t.amount}] ${t.type} - ${t.categories.name} (${t.created_at.split("T")[0]})${t.note ? `: ${t.note}` : ''}`
       ).join("\n")
     }
 
@@ -78,34 +92,42 @@ Deno.serve(async (req) => {
     console.log('formatTransactions previousMonthData', formatTransactions(previousMonthData));
 
     // Prepare data for OpenAI analysis
-    const prompt = `Como asistente financiero experto, analiza los siguientes datos financieros y proporciona un análisis detallado:
+    const prompt = `Analiza los siguientes datos de gastos y proporciona un análisis detallado en formato Markdown, comenzando DIRECTAMENTE con el punto 1, sin ninguna introducción o saludo.
 
-    DATOS DEL MES ACTUAL (${currentDate.toLocaleString('es', { month: 'long' })}):
-    Total: $${currentTotal}
-    Transacciones: 
+    GASTOS DEL MES ACTUAL (${currentDate.toLocaleString('es', { month: 'long' })}):
+    Total gastado: $${Math.abs(currentTotal)}
+    Desglose de gastos: 
     ${formatTransactions(currentMonthData)}
 
-    DATOS DEL MES ANTERIOR (${firstDayPreviousMonth.toLocaleString('es', { month: 'long' })}):
-    Total: $${previousTotal}
-    Transacciones:
+    GASTOS DEL MES ANTERIOR (${firstDayPreviousMonth.toLocaleString('es', { month: 'long' })}):
+    Total gastado: $${Math.abs(previousTotal)}
+    Desglose de gastos:
     ${formatTransactions(previousMonthData)}
 
-    Por favor, proporciona un análisis que incluya:
-    1. Una comparación general entre ambos meses (gastos totales, ingresos, balance)
-    2. Identificación de las categorías donde hubo cambios significativos
-    3. Patrones de gasto detectados
-    4. Recomendaciones específicas para mejorar las finanzas
-    5. Áreas de oportunidad para ahorro
-    6. Cualquier tendencia preocupante que requiera atención
-    7. Si no hay transacciones en el mes anterior, simplemente indica recomendaciones generales para el mes actual.
+    IMPORTANTE: 
+    1. Comienza tu respuesta DIRECTAMENTE con "## 1. Comparación general entre los gastos de ambos meses" sin ningún texto introductorio.
+    2. Usa formato Markdown:
+       - ## para los títulos principales (1-7)
+       - **texto** para resaltar cifras importantes y conclusiones clave
+       - - para bullets points
+       - \`$\` para cantidades monetarias
 
-    Responde en español, de manera clara y concisa, usando un tono profesional pero amigable.`;
+    Incluye los siguientes puntos numerados con ##:
+    1. Una comparación general entre los gastos de ambos meses
+    2. Identificación de las categorías donde hubo cambios significativos en el nivel de gasto
+    3. Patrones de gasto detectados (días específicos, categorías más frecuentes, etc.)
+    4. Recomendaciones específicas para reducir gastos en las categorías más significativas
+    5. Identificación de gastos que podrían ser excesivos o innecesarios
+    6. Sugerencias prácticas para optimizar el presupuesto en las categorías con mayor gasto
+    7. Si no hay gastos en el mes anterior, analiza los patrones del mes actual y proporciona recomendaciones basadas en esos datos
+
+    Responde en español, de manera clara y concisa, usando un tono profesional pero amigable. Enfócate en proporcionar consejos prácticos y alcanzables para la reducción y optimización de gastos.`;
 
     console.log('prompt', prompt);
 
     // Get OpenAI analysis
     const completion = await openAI.chat.completions.create({
-      model: 'gpt-4.1',
+      model: 'gpt-4.1-mini',
       messages: [
         {
           role: "system",

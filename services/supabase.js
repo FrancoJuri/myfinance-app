@@ -24,20 +24,20 @@ export const fetchCategories = async ({ userId, setCategories, setLoading }) => 
   try {
     const { data, error } = await supabase
       .from('categories')
-      .select('id, name, color')
+      .select('*')
       .eq('user_id', userId)
-      .order('name')
+      .eq('is_active', true)
+      .order('created_at', { ascending: true })
 
-    if (error) {
-      console.error('Error fetching categories:', error)
-      return
-    }
+    if (error) throw error
 
-    setCategories(data)
-    setLoading(false)
+    if (setCategories) setCategories(data)
+    return { data, error: null }
   } catch (error) {
-    console.error('Error:', error)
-    setLoading(false)
+    console.error('Error fetching categories:', error)
+    return { data: null, error }
+  } finally {
+    if (setLoading) setLoading(false)
   }
 }
 
@@ -64,16 +64,17 @@ export const createCategory = async ({ userId, name, color }) => {
 
 export const deleteCategory = async ({ categoryId }) => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('categories')
-      .delete()
+      .update({ is_active: false })
       .eq('id', categoryId)
+      .select()
 
     if (error) throw error
-    return { error: null }
+    return { data, error: null }
   } catch (error) {
-    console.error('Error deleting category:', error)
-    return { error }
+    console.error('Error soft deleting category:', error)
+    return { data: null, error }
   }
 }
 

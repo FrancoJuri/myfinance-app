@@ -2,9 +2,61 @@ import { Ionicons } from "@expo/vector-icons"
 import { useRouter } from "expo-router"
 import { useEffect, useState } from "react"
 import { ActivityIndicator, SafeAreaView, ScrollView, Text, TouchableOpacity, View } from "react-native"
+import Markdown from 'react-native-markdown-display'
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useSelector } from "react-redux"
 import { supabase } from "../../lib/supabase"
+
+// Estilos para el markdown
+const markdownStyles = {
+  body: {
+    color: '#374151', // text-gray-700
+  },
+  heading1: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    marginTop: 24,
+    color: '#111827', // text-gray-900
+  },
+  heading2: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    marginTop: 20,
+    color: '#111827',
+  },
+  heading3: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 6,
+    marginTop: 16,
+    color: '#111827',
+  },
+  paragraph: {
+    marginBottom: 12,
+    lineHeight: 24,
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  em: {
+    fontStyle: 'italic',
+  },
+  list_item: {
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  bullet_list: {
+    marginBottom: 12,
+  },
+  ordered_list: {
+    marginBottom: 12,
+  },
+}
+
 
 export default function Chat() {
   const insets = useSafeAreaInsets()
@@ -16,7 +68,7 @@ export default function Chat() {
   const [canRequestAnalysis, setCanRequestAnalysis] = useState(true)
 
   useEffect(() => {
-    checkLastAnalysis()
+    checkLastAnalysis();
   }, [])
 
   const checkLastAnalysis = async () => {
@@ -70,7 +122,7 @@ export default function Chat() {
         user_id: user.id,
         analysis_text: functionData.analysis,
         period_start: firstDayPreviousMonth.toISOString(),
-        period_end: new Date().toISOString() // Día actual
+        period_end: new Date().toISOString(), // Día actual
       }
 
       // Guardar el análisis en la base de datos
@@ -81,7 +133,10 @@ export default function Chat() {
       if (insertError) throw insertError
 
       // Actualizar el estado local directamente
-      setLastAnalysis(newAnalysis)
+      setLastAnalysis({
+        ...newAnalysis,
+        created_at: new Date().toISOString()
+      })
       setCanRequestAnalysis(false)
     } catch (err) {
       console.error('Error in analysis:', err)
@@ -150,7 +205,9 @@ export default function Chat() {
             <Text className="text-sm text-gray-500 mb-2">
               Análisis del {formatDate(lastAnalysis.created_at)}
             </Text>
-            <Text className="text-gray-700">{lastAnalysis.analysis_text}</Text>
+            <Markdown style={markdownStyles}>
+              {lastAnalysis.analysis_text}
+            </Markdown>
           </View>
         )}
 

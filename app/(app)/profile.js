@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { SafeAreaView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
+import { setTransactions } from "../../redux/slices/transactionsSlice";
 import { setUser } from "../../redux/slices/userSlice";
 import { signOut } from "../../services/supabase";
 
@@ -18,6 +19,7 @@ export default function Profile() {
   const onSignOut = async () => {
     await signOut();
     dispatch(setUser(null));
+    dispatch(setTransactions([]));
     router.replace("/(auth)");
   }
 

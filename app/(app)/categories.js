@@ -3,16 +3,18 @@ import { useRouter } from "expo-router"
 import { useEffect, useState } from "react"
 import { ActivityIndicator, Alert, SafeAreaView, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
+import { addCategory, removeCategory, setCategories } from "../../redux/slices/categoriesSlice"
 import { createCategory, deleteCategory, fetchCategories } from "../../services/supabase"
 
 
 export default function Categories() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
+  const dispatch = useDispatch()
   const user = useSelector((state) => state.user.user)
+  const categories = useSelector((state) => state.categories.categories)
   const [categoryName, setCategoryName] = useState("")
-  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -22,7 +24,14 @@ export default function Categories() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchCategories({ userId: user.id, setCategories, setLoading })
+      fetchCategories({ 
+        userId: user.id, 
+        setCategories: (cats) => {
+          dispatch(setCategories(cats))
+          setLoading(false)
+        }, 
+        setLoading 
+      })
     }
   }, [user?.id])
 
@@ -42,9 +51,9 @@ export default function Categories() {
 
       if (error) throw error
 
-      // Actualizar el estado local con la nueva categoría
+      // Actualizar el estado global con la nueva categoría
       if (data && data[0]) {
-        setCategories(currentCategories => [...currentCategories, data[0]])
+        dispatch(addCategory(data[0]))
       }
       
       // Limpiar formulario
@@ -62,7 +71,7 @@ export default function Categories() {
   const handleDeleteCategory = async (categoryId) => {
     Alert.alert(
       "Eliminar categoría",
-      "¿Estás seguro que deseas eliminar esta categoría?",
+      "¿Estás seguro que deseas eliminar esta categoría? Las transacciones existentes mantendrán esta categoría.",
       [
         { text: "Cancelar", style: "cancel" },
         {
@@ -70,13 +79,11 @@ export default function Categories() {
           style: "destructive",
           onPress: async () => {
             try {
-              const { error } = await deleteCategory({ categoryId })
+              const { data, error } = await deleteCategory({ categoryId })
               if (error) throw error
 
-              // Actualizar el estado local eliminando la categoría
-              setCategories(currentCategories => 
-                currentCategories.filter(category => category.id !== categoryId)
-              )
+              // Actualizar el estado global eliminando la categoría
+              dispatch(removeCategory(categoryId))
 
               Alert.alert("¡Éxito!", "Categoría eliminada correctamente")
             } catch (error) {
